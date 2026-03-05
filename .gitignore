@@ -1,0 +1,11 @@
+*
+!.gitignore
+!/LICENSE
+!/README.md
+!/MAINTAINER.md
+!.github/
+!.github/workflows/
+!.github/workflows/*.yml
+!/perry/
+!/perry/PKGBUILD
+!/perry/.SRCINFO

@@ -1,0 +1,77 @@
+# Auto-update AUR packages from PerryTS/perry latest release.
+# Runs daily at 3AM UTC and on manual workflow_dispatch.
+name: Auto Update AUR Packages
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest Perry release tag
+        id: tag
+        run: |
+          TAG=$(curl -sL https://api.github.com/repos/PerryTS/perry/releases/latest | jq -r '.tag_name')
+          echo "tag=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Latest tag: ${TAG#v}"
+
+      - name: Setup Arch environment and update PKGBUILDs
+        env:
+          LATEST_TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          docker run --rm --network=host -e LATEST_TAG="$LATEST_TAG" \
+            -v "$(pwd):/work" -w /work \
+            archlinux:latest /bin/bash -c '
+              set -e
+              pacman -Syu --noconfirm base-devel pacman-contrib git rust
+              useradd -m -u 1000 builder 2>/dev/null || true
+              chown -R builder:builder /work
+              for pkg in perry; do
+                su builder -c "cd /work/$pkg && sed -i \"s/^pkgver=.*/pkgver=$LATEST_TAG/\" PKGBUILD && updpkgsums || true && makepkg --printsrcinfo > .SRCINFO"
+              done
+            '
+
+      - name: Commit and push if changed
+        run: |
+          cd "${GITHUB_WORKSPACE:-.}"
+          if [ ! -d .git ]; then
+            echo "Not a git repo (e.g. act local run); PKGBUILD/.SRCINFO were updated in place."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add perry/PKGBUILD perry/.SRCINFO
+          if git diff --staged --quiet; then
+            echo "No version changes."
+            exit 0
+          fi
+          git commit -m "chore: bump to ${{ steps.tag.outputs.tag }}"
+          git push
+
+      - name: Push to AUR (perry)
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && !cancelled())
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+        run: |
+          if [ -z "$AUR_SSH_KEY" ]; then echo "AUR_SSH_KEY not set, skipping AUR push"; exit 0; fi
+          mkdir -p ~/.ssh
+          printf '%s' "$AUR_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H aur.archlinux.org >> ~/.ssh/known_hosts
+          git clone --depth 1 ssh://aur@aur.archlinux.org/perry.git aur-perry
+          cp perry/PKGBUILD perry/.SRCINFO LICENSE aur-perry/
+          cd aur-perry
+          git config user.name "${{ vars.AUR_USERNAME }}"
+          git config user.email "${{ vars.AUR_EMAIL }}"
+          git add PKGBUILD .SRCINFO LICENSE
+          if git diff --staged --quiet; then echo "No AUR perry changes"; exit 0; fi
+          git commit -m "chore: bump to ${{ steps.tag.outputs.tag }}"
+          git push
