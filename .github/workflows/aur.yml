@@ -23,21 +23,17 @@ jobs:
           echo "tag=${TAG#v}" >> "$GITHUB_OUTPUT"
           echo "Latest tag: ${TAG#v}"
 
-      - name: Setup Arch environment and update PKGBUILDs
-        env:
-          LATEST_TAG: ${{ steps.tag.outputs.tag }}
-        run: |
-          docker run --rm --network=host -e LATEST_TAG="$LATEST_TAG" \
-            -v "$(pwd):/work" -w /work \
-            archlinux:latest /bin/bash -c '
-              set -e
-              pacman -Syu --noconfirm base-devel pacman-contrib git rust
-              useradd -m -u 1000 builder 2>/dev/null || true
-              chown -R builder:builder /work
-              for pkg in perry; do
-                su builder -c "cd /work/$pkg && sed -i \"s/^pkgver=.*/pkgver=$LATEST_TAG/\" PKGBUILD && updpkgsums || true && makepkg --printsrcinfo > .SRCINFO"
-              done
-            '
+      - name: Update PKGBUILD
+        uses: heyhusen/archlinux-package-action@v3.0.0
+        with:
+          path: perry
+          pkgver: ${{ steps.tag.outputs.tag }}
+          pkgrel: 1
+          updpkgsums: true
+          srcinfo: true
+          namcap: true
+          flags: ''
+          archlinux_keyring: false
 
       - name: Commit and push if changed
         run: |
