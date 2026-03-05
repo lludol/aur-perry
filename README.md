@@ -4,9 +4,9 @@ Arch User Repository (AUR) package for [Perry](https://github.com/PerryTS/perry)
 
 ## Package
 
-| Package   | Description  |
-|-----------|--------------|
-| **perry** | Source build |
+| Package | Description | AUR |
+|---------|-------------|-----|
+| **perry** | Source build (requires Rust toolchain) | [perry](https://aur.archlinux.org/packages/perry) |
 
 ## Install
 
