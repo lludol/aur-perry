@@ -59,7 +59,7 @@ jobs:
         run: |
           if [ -z "$AUR_SSH_KEY" ]; then echo "AUR_SSH_KEY not set, skipping AUR push"; exit 0; fi
           mkdir -p ~/.ssh
-          printf '%s' "$AUR_SSH_KEY" > ~/.ssh/id_rsa
+          echo "$AUR_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H aur.archlinux.org >> ~/.ssh/known_hosts
           git clone --depth 1 ssh://aur@aur.archlinux.org/perry.git aur-perry
