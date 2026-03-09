@@ -56,6 +56,8 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && !cancelled())
         env:
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          AUR_USERNAME: ${{ vars.AUR_USERNAME }}
+          AUR_EMAIL: ${{ vars.AUR_EMAIL }}
         run: |
           if [ -z "$AUR_SSH_KEY" ]; then echo "AUR_SSH_KEY not set, skipping AUR push"; exit 0; fi
           mkdir -p ~/.ssh
@@ -65,8 +67,8 @@ jobs:
           git clone --depth 1 ssh://aur@aur.archlinux.org/perry.git aur-perry
           cp perry/PKGBUILD perry/.SRCINFO LICENSE aur-perry/
           cd aur-perry
-          git config user.name "${{ vars.AUR_USERNAME }}"
-          git config user.email "${{ vars.AUR_EMAIL }}"
+          git config user.name "${AUR_USERNAME:-github-actions[bot]}"
+          git config user.email "${AUR_EMAIL:-github-actions[bot]@users.noreply.github.com}"
           git add PKGBUILD .SRCINFO LICENSE
           if git diff --staged --quiet; then echo "No AUR perry changes"; exit 0; fi
           git commit -m "chore: bump to ${{ steps.tag.outputs.tag }}"
