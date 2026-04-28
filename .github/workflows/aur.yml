@@ -1,5 +1,5 @@
 # Auto-update AUR package from PerryTS/perry latest release.
-# PKGBUILD uses the release tar.gz (perry-linux-x86_64.tar.gz) and sha256sums only.
+# PKGBUILD builds from source using cargo. updpkgsums re-downloads the source tarball to update sha256sums.
 # Runs daily at 3AM UTC and on manual workflow_dispatch.
 name: Auto Update AUR Packages
 
