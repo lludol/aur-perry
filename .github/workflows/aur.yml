@@ -21,10 +21,18 @@ jobs:
         id: tag
         run: |
           TAG=$(curl -sL https://api.github.com/repos/PerryTS/perry/releases/latest | jq -r '.tag_name')
+          if [ "$TAG" = "null" ] || [ -z "$TAG" ]; then
+            TAG=$(curl -sL "https://api.github.com/repos/PerryTS/perry/tags?per_page=1" | jq -r '.[0].name')
+          fi
+          if [ "$TAG" = "null" ] || [ -z "$TAG" ]; then
+            echo "No release or tag found, skipping."
+            exit 0
+          fi
           echo "tag=${TAG#v}" >> "$GITHUB_OUTPUT"
           echo "Latest tag: ${TAG#v}"
 
       - name: Update PKGBUILD
+        if: steps.tag.outputs.tag != ''
         uses: heyhusen/archlinux-package-action@v3.0.0
         with:
           path: perry
@@ -37,6 +45,7 @@ jobs:
           archlinux_keyring: false
 
       - name: Commit and push if changed
+        if: steps.tag.outputs.tag != ''
         run: |
           cd "${GITHUB_WORKSPACE:-.}"
           if [ ! -d .git ]; then
@@ -54,7 +63,7 @@ jobs:
           git push
 
       - name: Push to AUR (perry)
-        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && !cancelled())
+        if: steps.tag.outputs.tag != '' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && !cancelled()))
         env:
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
           AUR_USERNAME: ${{ vars.AUR_USERNAME }}
