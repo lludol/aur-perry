@@ -19,10 +19,12 @@ jobs:
 
       - name: Get latest Perry release tag
         id: tag
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          TAG=$(curl -sL https://api.github.com/repos/PerryTS/perry/releases/latest | jq -r '.tag_name')
+          TAG=$(gh api repos/PerryTS/perry/releases/latest --jq '.tag_name' 2>/dev/null || true)
           if [ "$TAG" = "null" ] || [ -z "$TAG" ]; then
-            TAG=$(curl -sL "https://api.github.com/repos/PerryTS/perry/tags?per_page=1" | jq -r '.[0].name')
+            TAG=$(gh api "repos/PerryTS/perry/tags?per_page=1" --jq '.[0].name' 2>/dev/null || true)
           fi
           if [ "$TAG" = "null" ] || [ -z "$TAG" ]; then
             echo "No release or tag found, skipping."
