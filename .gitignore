@@ -6,6 +6,10 @@
 !.github/
 !.github/workflows/
 !.github/workflows/*.yml
+!.github/scripts/
+!.github/scripts/*.sh
 !/perry/
 !/perry/PKGBUILD
 !/perry/.SRCINFO
+!/tests/
+!/tests/*.sh
