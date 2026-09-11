@@ -18,10 +18,10 @@ aur_checkout="$workdir/aur-perry"
 umask 077
 printf '%s\n' "$AUR_SSH_KEY" > "$key_file"
 ssh-keyscan -H aur.archlinux.org > "$known_hosts"
+export GIT_SSH_COMMAND="ssh -i $key_file -o IdentitiesOnly=yes -o UserKnownHostsFile=$known_hosts -o StrictHostKeyChecking=yes"
 
 set +e
-clone_output=$(GIT_SSH_COMMAND="ssh -i $key_file -o IdentitiesOnly=yes -o UserKnownHostsFile=$known_hosts -o StrictHostKeyChecking=yes" \
-  git clone --depth 1 ssh://aur@aur.archlinux.org/perry.git "$aur_checkout" 2>&1)
+clone_output=$(git clone --depth 1 ssh://aur@aur.archlinux.org/perry.git "$aur_checkout" 2>&1)
 clone_status=$?
 set -e
 printf '%s\n' "$clone_output"
